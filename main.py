@@ -2,8 +2,8 @@ import feedparser
 import time
 import threading
 import requests
+from flask import Flask
 import os
-from keep_alive import keep_alive
 
 # === Load from environment ===
 BOT_TOKEN = os.environ['BOT_TOKEN']
@@ -16,11 +16,14 @@ KEYWORDS = [
 ]
 
 seen_titles = set()
+app = Flask(__name__)
+
 
 def send_telegram_alert(text):
     url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
     data = {'chat_id': CHAT_ID, 'text': text}
     requests.post(url, data=data)
+
 
 def check_binance():
     while True:
@@ -32,10 +35,15 @@ def check_binance():
                 print(f"[NEW] {entry.title}")
                 send_telegram_alert(
                     f"🚨 Binance Alert:\n{entry.title}\n{entry.link}")
-        time.sleep(60)
+        time.sleep(60)  # check every 60 seconds
 
-# 🔁 Keep web server alive for UptimeRobot
-keep_alive()
 
-# 🚀 Start checking in background
-threading.Thread(target=check_binance).start()
+@app.route('/')
+def home():
+    return "✅ Binance Alert Bot is running!"
+
+
+# === Start thread and Flask server ===
+if __name__ == '__main__':
+    threading.Thread(target=check_binance).start()
+    app.run(host='0.0.0.0', port=8080)
